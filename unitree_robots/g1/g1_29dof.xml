@@ -59,6 +59,11 @@
     <mesh name="right_rubber_hand" file="right_rubber_hand.STL" />
   </asset>
 
+  <extension>
+    <plugin plugin="mujoco.sensor.ray_caster"/>
+    <plugin plugin="mujoco.sensor.ray_caster_camera"/>
+  </extension>
+
   <worldbody>
     <body name="pelvis" pos="0 0 0.793">
       <site name="imu" size="0.01" pos="0.0 0.0 0.0" />
@@ -226,6 +231,9 @@
               group="1" density="0" rgba="0.7 0.7 0.7 1" mesh="waist_support_link" />
             <geom pos="0.0039635 0 -0.054" quat="1 0 0 0" type="mesh" rgba="0.7 0.7 0.7 1"
               mesh="waist_support_link" />
+            <!-- G1 depth SSL TTT camera, expressed in the torso_link frame. -->
+            <camera name="ray_caster_camera" pos="0.048798866 0.015 0.437802994"
+              xyaxes="-0.003549458 -0.999964007 -0.007972087 0.743137751 -0.007972087 0.669092529" />
             <body name="left_shoulder_pitch_link" pos="0.0039563 0.10022 0.23778"
               quat="0.990264 0.139201 1.38722e-05 -9.86868e-05">
               <inertial pos="0 0.035892 -0.011628" quat="0.654152 0.0130458 -0.326267 0.68225"
@@ -521,6 +529,24 @@
     <framequat name="secondary_imu_quat" objtype="site" objname="secondary_imu" />
     <gyro name="secondary_imu_gyro" site="secondary_imu" noise="5e-4" cutoff="34.9"/>
     <accelerometer name="secondary_imu_acc" site="secondary_imu" noise="1e-2" cutoff="157"/>
+
+    <plugin name="depth_camera" plugin="mujoco.sensor.ray_caster_camera" objtype="camera"
+            objname="ray_caster_camera">
+      <config key="focal_length" value="1.0" />
+      <config key="horizontal_aperture" value="1.982968497" />
+      <config key="size" value="64 36" />
+      <config key="dis_range" value="0.05 2.5" />
+      <config key="vertical_aperture" value="1.115244042" />
+      <config key="compute_time_log" value="0" />
+      <config key="n_step_update" value="16" />
+      <config key="draw_deep_ray_ids" value="0 10 0 0.5 0.5 0.5 0 31 63 2303" />
+      <config key="draw_hip_point" value="1 0.02" />
+      <config key="sensor_data_types" value="pos_b image" />
+      <config key="geomgroup" value="1 0 0 0 0 0" />
+      <config key="detect_parentbody" value="1" />
+    </plugin>
+    <framepos name="depth_camera_pos" objtype="camera" objname="ray_caster_camera"/>
+    <framequat name="depth_camera_quat" objtype="camera" objname="ray_caster_camera"/>
   </sensor>
 
 </mujoco>

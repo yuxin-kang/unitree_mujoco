@@ -303,7 +303,7 @@ void RayPlugin::initSensor(const mjModel *m, mjData *d, int instance,
       ReadVector<bool>(mj_getPluginConfig(m, instance, base_attributes[8]));
   if (!detect_parentbody.empty()) {
     if (detect_parentbody[0]) {
-      ray_caster->no_detect_body_id = m->cam_bodyid[ray_caster->cam_id];
+      ray_caster->no_detect_body_id = -1;
     }
   }
 

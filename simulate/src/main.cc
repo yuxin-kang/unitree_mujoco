@@ -588,7 +588,9 @@ namespace
                   if (odom_publisher) {
                     odom_publisher->publish(m, d);
                   }
-                  last_publisher_time = d->time;
+                  // Keep the requested cadence even when its period is not an
+                  // integer multiple of the MuJoCo physics timestep.
+                  last_publisher_time += publisher_interval;
                 }
                 // Spin ROS2 nodes
                 if (raycaster_node) {

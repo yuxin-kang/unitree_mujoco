@@ -1,6 +1,8 @@
 #pragma once
 
 #include <rclcpp/rclcpp.hpp>
+#include <builtin_interfaces/msg/time.hpp>
+#include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <sensor_msgs/msg/point_field.hpp>
 #include <std_msgs/msg/float32_multi_array.hpp>
@@ -18,13 +20,16 @@
 #include <map>
 #include <sstream>
 #include <algorithm>
+#include <cstdint>
+#include <cstring>
 #include <cmath>
 
 class RaycasterPublisher {
 public:
     enum class OutputFormat {
         POINTCLOUD,
-        ARRAY
+        ARRAY,
+        IMAGE
     };
     
     RaycasterPublisher(rclcpp::Node::SharedPtr node, OutputFormat format = OutputFormat::POINTCLOUD, 
@@ -222,8 +227,12 @@ public:
                 }
                 
                 // Determine output format for this sensor
-                OutputFormat sensor_format = (output_format_str == "array") ? 
-                    OutputFormat::ARRAY : OutputFormat::POINTCLOUD;
+                OutputFormat sensor_format = OutputFormat::POINTCLOUD;
+                if (output_format_str == "array") {
+                    sensor_format = OutputFormat::ARRAY;
+                } else if (output_format_str == "image") {
+                    sensor_format = OutputFormat::IMAGE;
+                }
                 
                 sensor.output_format = sensor_format;
                 sensor.flatten_xyz = flatten_xyz;
@@ -261,7 +270,7 @@ public:
                     sensor.pc_msg_template.fields[2].count = 1;
                     
                     sensor.pc_msg_template.data.resize(num_points * 12);
-                } else {
+                } else if (sensor_format == OutputFormat::ARRAY) {
                     // Array format
                     topic_name += "_array";
                     sensor.array_publisher = node_->create_publisher<std_msgs::msg::Float32MultiArray>(
@@ -273,6 +282,16 @@ public:
                     } else {
                         sensor.array_msg_template.data.reserve(num_points);
                     }
+                } else {
+                    int num_points = sensor.h_ray_num * sensor.v_ray_num;
+                    sensor.image_publisher = node_->create_publisher<sensor_msgs::msg::Image>(topic_name, 10);
+                    sensor.image_msg_template.header.frame_id = sensor.frame_id;
+                    sensor.image_msg_template.height = sensor.v_ray_num;
+                    sensor.image_msg_template.width = sensor.h_ray_num;
+                    sensor.image_msg_template.encoding = "32FC1";
+                    sensor.image_msg_template.is_bigendian = false;
+                    sensor.image_msg_template.step = sensor.h_ray_num * sizeof(float);
+                    sensor.image_msg_template.data.resize(num_points * sizeof(float));
                 }
                 
                 RCLCPP_INFO(node_->get_logger(), "RayCaster sensor: %s (topic: %s, frame: %s, %dx%d rays)",
@@ -363,10 +382,12 @@ private:
         // Publishers for different formats
         rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pc_publisher;
         rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr array_publisher;
+        rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_publisher;
         
         // Pre-allocated buffers
         sensor_msgs::msg::PointCloud2 pc_msg_template;
         std_msgs::msg::Float32MultiArray array_msg_template;
+        sensor_msgs::msg::Image image_msg_template;
     };
     
     struct CameraSensor {
@@ -503,10 +524,50 @@ private:
         for (auto& sensor : raycaster_sensors_) {
             if (sensor.output_format == OutputFormat::POINTCLOUD) {
                 publish_sensor_as_pointcloud(sensor, d);
-            } else {
+            } else if (sensor.output_format == OutputFormat::ARRAY) {
                 publish_sensor_as_array(sensor, d);
+            } else {
+                publish_sensor_as_image(sensor, d);
             }
         }
+    }
+
+    static builtin_interfaces::msg::Time simulation_time(double time_seconds) {
+        constexpr int64_t kNanosecondsPerSecond = 1000000000LL;
+        const int64_t nanoseconds = static_cast<int64_t>(std::llround(time_seconds * kNanosecondsPerSecond));
+
+        builtin_interfaces::msg::Time stamp;
+        stamp.sec = static_cast<int32_t>(nanoseconds / kNanosecondsPerSecond);
+        stamp.nanosec = static_cast<uint32_t>(nanoseconds % kNanosecondsPerSecond);
+        return stamp;
+    }
+
+    void publish_sensor_as_image(RayCasterSensor& sensor, mjData* d) {
+        auto& msg = sensor.image_msg_template;
+        msg.header.stamp = simulation_time(d->time);
+
+        const int num_points = sensor.h_ray_num * sensor.v_ray_num;
+        mjtNum* data_ptr = d->sensordata + sensor.data_adr;
+        if (sensor.pos_w_data_size > 0 && sensor.pos_w_data_offset >= 0) {
+            data_ptr += sensor.pos_w_data_offset;
+        }
+
+        for (int i = 0; i < num_points; ++i) {
+            float depth = 0.0f;
+            if (sensor.data_type == SensorDataType::POSITION_3D) {
+                // RayCasterCamera stores camera-frame hits in pos_b.  Its optical
+                // axis is -Z, so abs(z) is the image-plane depth expected by G1.
+                depth = std::abs(static_cast<float>(data_ptr[i * 3 + 2]));
+            } else {
+                depth = static_cast<float>(data_ptr[i]);
+            }
+            if (!std::isfinite(depth)) {
+                depth = sensor.max_distance;
+            }
+            std::memcpy(msg.data.data() + i * sizeof(float), &depth, sizeof(float));
+        }
+
+        sensor.image_publisher->publish(msg);
     }
     
     void publish_sensor_as_pointcloud(RayCasterSensor& sensor, mjData* d) {
