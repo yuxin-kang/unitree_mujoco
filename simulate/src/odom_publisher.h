@@ -109,8 +109,11 @@ public:
         mjtNum* pos = d->xpos + 3 * base_body_id_;
         mjtNum* quat = d->xquat + 4 * base_body_id_;
         
-        // Get body velocity (computed from xpos difference)
-        mjtNum* cvel = d->cvel + 6 * base_body_id_;  // 6-DOF velocity
+        // cvel is a COM-centred spatial velocity in the world orientation, so
+        // it is not the body-frame base velocity expected by the teacher.
+        // Ask MuJoCo for the object-centred velocity in the local body frame.
+        mjtNum body_velocity[6];  // [angular xyz, linear xyz]
+        mj_objectVelocity(m, d, mjOBJ_BODY, base_body_id_, body_velocity, /*flg_local=*/1);
         
         // Create odometry message
         nav_msgs::msg::Odometry odom_msg;
@@ -129,15 +132,15 @@ public:
         odom_msg.pose.pose.orientation.y = quat[2];
         odom_msg.pose.pose.orientation.z = quat[3];
         
-        // Linear velocity (in body frame, convert to world frame)
-        odom_msg.twist.twist.linear.x = cvel[3];
-        odom_msg.twist.twist.linear.y = cvel[4];
-        odom_msg.twist.twist.linear.z = cvel[5];
+        // nav_msgs/Odometry convention: twist is expressed in child_frame_id.
+        odom_msg.twist.twist.linear.x = body_velocity[3];
+        odom_msg.twist.twist.linear.y = body_velocity[4];
+        odom_msg.twist.twist.linear.z = body_velocity[5];
         
         // Angular velocity
-        odom_msg.twist.twist.angular.x = cvel[0];
-        odom_msg.twist.twist.angular.y = cvel[1];
-        odom_msg.twist.twist.angular.z = cvel[2];
+        odom_msg.twist.twist.angular.x = body_velocity[0];
+        odom_msg.twist.twist.angular.y = body_velocity[1];
+        odom_msg.twist.twist.angular.z = body_velocity[2];
         
         // Covariance (simplified, could be improved)
         for (int i = 0; i < 36; i++) {

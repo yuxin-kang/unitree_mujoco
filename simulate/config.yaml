@@ -15,7 +15,7 @@ enable_elastic_band: 1 # Virtual spring band, used for lifting humanoids
 
 # ROS2 Publishers (optional)
 enable_ray_array: true  # Enable ray array publisher
-enable_odom: false      # Enable odometry publisher
+enable_odom: true       # Enable odometry publisher
 
 # External Odometry Subscriber (optional, for controlling robot base pose)
 enable_odom_sub: false              # Enable external odometry subscriber
