@@ -534,12 +534,12 @@
             objname="ray_caster_camera">
       <config key="focal_length" value="1.0" />
       <config key="horizontal_aperture" value="1.982968497" />
-      <config key="size" value="64 36" />
+      <config key="size" value="64 48" />
       <config key="dis_range" value="0.05 2.5" />
       <config key="vertical_aperture" value="1.115244042" />
       <config key="compute_time_log" value="0" />
-      <config key="n_step_update" value="16" />
-      <config key="draw_deep_ray_ids" value="0 10 0 0.5 0.5 0.5 0 31 63 2303" />
+      <config key="n_step_update" value="32" />
+      <config key="draw_deep_ray_ids" value="0 10 0 0.5 0.5 0.5 0 31 63 3071" />
       <config key="draw_hip_point" value="1 0.02" />
       <config key="sensor_data_types" value="pos_b image" />
       <config key="geomgroup" value="1 0 0 0 0 0" />

@@ -40,12 +40,13 @@ raycaster_sensors:
     replace_nan: "zero"      # Replace NaN/Inf with 0.0
     distance_type: ""        # Available options: "abs", "eu", ""
   depth_camera:
+    topic: "/camera/camera/depth/image_rect_raw"
     output_format: "image"   # Raw sensor_msgs/Image (32FC1), no preprocessing
 
 # Depth Image Visualizer (optional, impacts performance)
 enable_depth_visualizer: true  # Enable depth camera visualization (default: false)
 
 # Publisher frequency control (Hz)
-publisher_frequency: 30.0        # Frequency for all ROS2 publishers
+publisher_frequency: 15.0        # Frequency for all ROS2 publishers
 depth_visualizer_frequency: 10.0 # Frequency for depth image visualization (default: 10Hz, lower to improve performance)
 depth_visualizer_scale: 4        # Scale factor for depth image display (1-4, default: 2, lower is faster)

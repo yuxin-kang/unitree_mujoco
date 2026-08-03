@@ -43,6 +43,7 @@ inline struct SimulationConfig
     
     // Per-sensor raycaster configuration
     struct RaycasterSensorConfig {
+        std::string topic = "";  // Empty = use /<sensor_name>
         std::string output_format = "";  // Empty = use default
         bool flatten_xyz = true;
         bool zero_mean = false;
@@ -119,6 +120,9 @@ inline struct SimulationConfig
                     std::string name = sensor.first.as<std::string>();
                     RaycasterSensorConfig sensor_cfg;
                     
+                    if (sensor.second["topic"]) {
+                        sensor_cfg.topic = sensor.second["topic"].as<std::string>();
+                    }
                     if (sensor.second["output_format"]) {
                         sensor_cfg.output_format = sensor.second["output_format"].as<std::string>();
                     }

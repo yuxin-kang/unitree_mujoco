@@ -215,6 +215,9 @@ public:
                 // Check if sensor has specific configuration
                 auto it = param::config.raycaster_sensors.find(sensor_name);
                 if (it != param::config.raycaster_sensors.end()) {
+                    if (!it->second.topic.empty()) {
+                        topic_name = it->second.topic;
+                    }
                     if (!it->second.output_format.empty()) {
                         output_format_str = it->second.output_format;
                     }
